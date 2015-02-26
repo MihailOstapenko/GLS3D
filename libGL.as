@@ -1152,7 +1152,8 @@ package GLS3D
                         key = key.concat((textureParams ? textureParams.GL_TEXTURE_WRAP_S : 0), ",",
                                         (textureParams ? textureParams.GL_TEXTURE_WRAP_T : 0), ",",
                                         (textureParams ? textureParams.GL_TEXTURE_MIN_FILTER : 0), ",",
-                                        (ti.mipLevels > 1 ? 1 : 0))
+                                        (ti.mipLevels > 1 ? 1 : 0), ",",
+                                        ti.compressed)
                     }
                 }
                 
@@ -1249,7 +1250,7 @@ package GLS3D
                 ].join("\n")
 
                 const _fragmentShader_Texture:String = [
-                    "tex ft0, v1, fs0 <2d, wrapMode, minFilter> ",     // sample the texture
+                    "tex ft0, v1, fs0 <2d, wrapMode, minFilter, texFormat> ",     // sample the texture
                     "mul ft0, ft0, v5",                             // modulate with the interpolated color (hardcoding GL_TEXTURE_ENV_MODE to GL_MODULATE)
                     "add ft0.xyz, ft0.xyz, v4.xyz",                 // add specular color
                     "mov oc, ft0",                                  // output interpolated color.                             
@@ -1363,6 +1364,9 @@ package GLS3D
     
                         var wrapModeS:String = (textureParams.GL_TEXTURE_WRAP_S == GL_REPEAT) ? "repeat" : "clamp"
                         fragmentShader = _fragmentShader_Texture.replace("wrapMode", wrapModeS)
+
+                        var texFormatS:String = ti.compressed ? "dxt5" : "bgra"
+                        fragmentShader = _fragmentShader_Texture.replace("texFormat", texFormatS)
 
                         if(log) log.send("mipmapping levels " + ti.mipLevels)
 
@@ -2625,8 +2629,10 @@ package GLS3D
             {
                 //trace("Compressed is " + compressed ? Context3DTextureFormat.COMPRESSED : Context3DTextureFormat.BGRA)
                 instance.texture = 
-                    context.createTexture(width, height, compressed ? Context3DTextureFormat.COMPRESSED : Context3DTextureFormat.BGRA, dataOff == 0 ? true : false)
+                    context.createTexture(width, height, compressed ? Context3DTextureFormat.COMPRESSED_ALPHA : Context3DTextureFormat.BGRA, dataOff == 0 ? true : false)
                 
+                instance.compressed = compressed;
+
                 textureSamplers[activeTextureUnit] = instance
             }
 
@@ -2728,6 +2734,7 @@ class TextureInstance
     public var params:TextureParams = new TextureParams()
     public var boundType:uint
     public var texID:uint
+    public var compressed:Boolean;
 }
 
 class TextureParams
